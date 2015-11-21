@@ -1,6 +1,9 @@
 package p.social.ent;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -8,6 +11,7 @@ import android.support.v4.app.FragmentManager;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -15,80 +19,144 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-public class SidePanelActivity extends AppCompatActivity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks {
+import com.squareup.picasso.Picasso;
 
-    /**
-     * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
-     */
-    private NavigationDrawerFragment mNavigationDrawerFragment;
+import java.util.ArrayList;
 
-    /**
-     * Used to store the last screen title. For use in {@link #restoreActionBar()}.
-     */
-    private CharSequence mTitle;
+public class SidePanelActivity extends AppCompatActivity{
+
+    String TAG= "delNear-menu";
+    ArrayList<NavItems> navItems;
+
+    DrawerLayout mDrawerLayout;
+    LinearLayout mDrawerPane;
+    ListView mDrawerList;
+    ActionBarDrawerToggle mDrawerToggle;
+
+    int currentFragment=-1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_side_panel);
 
-        mNavigationDrawerFragment = (NavigationDrawerFragment)
-                getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
-        mTitle = getTitle();
 
-        // Set up the drawer.
-        mNavigationDrawerFragment.setUp(
-                R.id.navigation_drawer,
-                (DrawerLayout) findViewById(R.id.drawer_layout));
+//        if(getIntent().getBooleanExtra("shouldAddLocation",false))
+//            startActivity(new Intent(SidePanelActivity.this,AddLocation.class));
+
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+//        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_drawer);//
+        getSupportActionBar().setBackgroundDrawable(new ColorDrawable(getResources().getColor(R.color.theme_color)));
+
+
+        //add navigation items
+        navItems = new ArrayList<>();
+        navItems.add(new NavItems("Home",R.mipmap.ic_launcher));
+        navItems.add(new NavItems("Events",R.mipmap.ic_launcher));
+        navItems.add(new NavItems("Music",R.mipmap.ic_launcher));
+        navItems.add(new NavItems("Media",R.mipmap.ic_launcher));
+        navItems.add(new NavItems("News",R.mipmap.ic_launcher));
+        navItems.add(new NavItems("Calendar",R.mipmap.ic_launcher));
+        navItems.add(new NavItems("About",R.mipmap.ic_launcher));
+
+
+        mDrawerLayout = (DrawerLayout)findViewById(R.id.drawerLayout);
+        mDrawerPane = (LinearLayout)findViewById(R.id.drawerPane);
+        mDrawerList = (ListView)findViewById(R.id.drawerList);
+        mDrawerList.setAdapter(new DrawerListAdapter(this,navItems));
+        mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                mDrawerLayout.closeDrawer(mDrawerPane);
+
+                selectItemFromDrawer(position);
+            }
+        });
+
+        mDrawerToggle = new ActionBarDrawerToggle(this,mDrawerLayout,0,0){
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+                invalidateOptionsMenu();
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                super.onDrawerClosed(drawerView);
+                invalidateOptionsMenu();
+            }
+        };
+
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+
+        selectItemFromDrawer(1);
     }
 
-    @Override
-    public void onNavigationDrawerItemSelected(int position) {
-        // update the main content by replacing fragments
+    public void selectItemFromDrawer(int menuIndex) {
+
+        Log.v(TAG, ">>" + menuIndex + "--" + currentFragment);
+
         FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
-                .commit();
-    }
 
-    public void onSectionAttached(int number) {
-        switch (number) {
-            case 1:
-                mTitle = getString(R.string.title_section1);
-                break;
-            case 2:
-                mTitle = getString(R.string.title_section2);
-                break;
-            case 3:
-                mTitle = getString(R.string.title_section3);
-                break;
+        Fragment fragment = null;
+
+//        switch (menuIndex){
+//            case 0:{
+//                startActivity(new Intent(SidePanelActivity.this,AddLocation.class));
+//            }
+//            break;
+//            case 1:{
+//                fragment = new FragmentRestaurants();
+//            }
+//            break;
+//
+//        }
+
+        if(currentFragment != menuIndex && fragment!=null) {
+            try {
+                fragmentManager.beginTransaction()
+                        .replace(R.id.mainContent, fragment)
+                        .commit();
+
+                currentFragment = menuIndex;
+
+                mDrawerList.setItemChecked(menuIndex, true);
+                setTitle(navItems.get(menuIndex).title);
+            }catch (IllegalStateException ise){
+                Log.v(TAG, "ERROR: " + ise.getLocalizedMessage());
+            }
         }
-    }
 
-    public void restoreActionBar() {
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
-        actionBar.setDisplayShowTitleEnabled(true);
-        actionBar.setTitle(mTitle);
-    }
 
+
+
+        // Close the drawer
+        mDrawerLayout.closeDrawer(mDrawerPane);
+    }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        if (!mNavigationDrawerFragment.isDrawerOpen()) {
-            // Only show items in the action bar relevant to this screen
-            // if the drawer is not showing. Otherwise, let the drawer
-            // decide what to show in the action bar.
-            getMenuInflater().inflate(R.menu.side_panel, menu);
-            restoreActionBar();
-            return true;
-        }
-        return super.onCreateOptionsMenu(menu);
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        mDrawerToggle.syncState();
     }
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // If the nav drawer is open, hide action items related to the content view
+        boolean drawerOpen = mDrawerLayout.isDrawerOpen(mDrawerPane);
+//        menu.findItem(R.id.action_search).setVisible(!drawerOpen);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -97,51 +165,74 @@ public class SidePanelActivity extends AppCompatActivity
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if(mDrawerToggle.onOptionsItemSelected(item)){
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
-        private static final String ARG_SECTION_NUMBER = "section_number";
 
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
-            Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
-            return fragment;
+
+    public class NavItems {
+        String title;
+        int icon;
+        public NavItems(String title,int icon){
+            this.title = title;
+            this.icon = icon;
         }
+    }
 
-        public PlaceholderFragment() {
+    public class DrawerListAdapter extends BaseAdapter {
+        Context mContext;
+        ArrayList<NavItems> mNavItems;
+
+        public DrawerListAdapter(Context context, ArrayList<NavItems> navItems) {
+            mContext = context;
+            mNavItems = navItems;
         }
 
         @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.main_content, container, false);
-            return rootView;
+        public int getCount() {
+            return mNavItems.size();
         }
 
         @Override
-        public void onAttach(Activity activity) {
-            super.onAttach(activity);
-            ((SidePanelActivity) activity).onSectionAttached(
-                    getArguments().getInt(ARG_SECTION_NUMBER));
+        public Object getItem(int i) {
+            return mNavItems.get(i);
+        }
+
+        @Override
+        public long getItemId(int i) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int i, View convertView, ViewGroup viewGroup) {
+
+            View view;
+
+            if (convertView == null) {
+                LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                view = inflater.inflate(R.layout.item_main_menu, null);
+
+                TextView titleView = (TextView) view.findViewById(R.id.menu_title);
+                ImageView iconView = (ImageView) view.findViewById(R.id.menu_icon);
+
+                titleView.setText(mNavItems.get(i).title);
+//            titleView.setTypeface(Constants.GLOBAL_FONT);
+
+
+                if(mNavItems.get(i).icon != -1) {
+                    Picasso.with(mContext).load(mNavItems.get(i).icon).into(iconView);
+                }
+                else
+                    iconView.setImageBitmap(null);
+
+            } else
+                view = convertView;
+
+            return view;
         }
     }
 
